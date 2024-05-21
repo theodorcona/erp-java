@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
 @Service
 class EventServiceImpl(
     private val schemaService: SchemaService,
-    private val kafkaProducer: ErpKafkaProducer,
+//    private val kafkaProducer: ErpKafkaProducer,
     entityServiceFactory: EntityServiceFactory
 ) : EventService {
 
@@ -30,6 +30,6 @@ class EventServiceImpl(
         check(schemaService.dataFitsSchema(eventMetadata.obj.schema, event.data)) {
             "Event doesn't fit registered schema"
         }
-        kafkaProducer.send("events", event)
+//        kafkaProducer.send("events", event)
     }
 }

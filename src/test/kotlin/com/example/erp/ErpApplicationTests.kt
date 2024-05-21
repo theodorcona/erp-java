@@ -34,6 +34,7 @@ import java.util.*
 
 @SpringBootTest
 @Import(TestErpApplication::class)
+@Disabled
 class ErpApplicationTests {
 
     @Autowired

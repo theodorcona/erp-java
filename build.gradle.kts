@@ -40,6 +40,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.1")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-joda:2.17.1")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
