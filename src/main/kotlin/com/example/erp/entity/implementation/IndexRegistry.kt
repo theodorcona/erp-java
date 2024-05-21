@@ -62,6 +62,8 @@ class IndexRegistry(
          * propertyName=createdAt. If we didn't have the propertyName condition, we would get each entry multiple times.
          * The assumption here is that each entity has exactly one index entry for propertyName=createdAt
          */
+        val message = dateIndex.findAll()
+        println(message)
         return dateIndex.findAllByEntityCollectionAndPropertyNameAndValueGreaterThanEqual(
             collection,
             "createdAt",

@@ -1,10 +1,10 @@
 package com.example.erp.invoice
 
-import com.example.erp.entity.CollectionDescriptor
+import com.example.erp.entity.NoDTOCollectionDescriptor
 import org.joda.time.DateTime
 import java.util.*
 
-object INVOICE_COLLECTION : CollectionDescriptor<Invoice>(
+object INVOICE_COLLECTION : NoDTOCollectionDescriptor<Invoice>(
     Invoice::class.java,
     "invoice"
 )

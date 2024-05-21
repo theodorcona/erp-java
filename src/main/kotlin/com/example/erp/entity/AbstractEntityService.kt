@@ -24,17 +24,17 @@ abstract class AbstractEntityService<Existing, New>(
     val schemaService: SchemaService,
     val indexService: IndexService
 ) {
-    abstract fun entityToDTO(entity: Entity): Existing
-    abstract fun dtoToData(dto: New): String
+    abstract fun entityToDomain(entity: Entity): Existing
+    abstract fun domainToData(dto: New): String
 
     protected fun getEntitiesAllPaged(rangeQuery: RangeQuery): PageDTO<Existing> {
-        return entityStore.findAllEntitiesInCollectionPaged(collection, rangeQuery).map(this::entityToDTO)
+        return entityStore.findAllEntitiesInCollectionPaged(collection, rangeQuery).map(this::entityToDomain)
     }
 
     protected fun findById(id: UUID): Existing? {
         return entityStore.findEntityById(id)
             ?.takeIf { it.collection == collection }
-            ?.let(this::entityToDTO)
+            ?.let(this::entityToDomain)
     }
 
     protected fun findByPropertyPaged(
@@ -46,11 +46,11 @@ abstract class AbstractEntityService<Existing, New>(
         check(schemaService.schemaContainsIndexedProperty(schema, property)) {
             "Collection '${collection}' does not contain indexed property '${collectionProperty.propertyName.path}'"
         }
-        return entityStore.findEntitiesByPropertyPaged(property, rangeQuery).map(this::entityToDTO)
+        return entityStore.findEntitiesByPropertyPaged(property, rangeQuery).map(this::entityToDomain)
     }
 
     protected fun insertEntity(entity: New): Existing {
-        val entityData = dtoToData(entity)
+        val entityData = domainToData(entity)
         val schema = entityMetadataService.getEntityMetadataForCollection(collection).obj.schema
         /**
          * TODO: Application dev could've declared schema lazily to make the check always pass.
@@ -61,20 +61,20 @@ abstract class AbstractEntityService<Existing, New>(
         check(schemaService.dataFitsSchema(schema, entityData)) { "Data does not fit schema" }
         val response = entityStore.insertEntity(entityData, collection)
         indexService.insertEntityIndex(response.id)
-        return response.let(this::entityToDTO)
+        return response.let(this::entityToDomain)
     }
 
     protected fun updateEntity(id: UUID, entityDto: New): Existing {
-        val data = dtoToData(entityDto)
+        val data = domainToData(entityDto)
         val entityMetadata = entityMetadataService.getEntityMetadataForCollection(collection)
         check(schemaService.dataFitsSchema(entityMetadata.obj.schema, data)) { "Data does not fit schema" }
         val previousEntity = entityStore.updateEntityAndReturnPrevious(id, data, collection)
         indexService.updateEntityIndex(previousEntity, id)
-        return previousEntity.let(this::entityToDTO)
+        return previousEntity.let(this::entityToDomain)
     }
 
     protected fun deleteEntity(id: UUID): Existing? {
         indexService.removeEntityIndex(id)
-        return entityStore.deleteEntityById(id)?.let(this::entityToDTO)
+        return entityStore.deleteEntityById(id)?.let(this::entityToDomain)
     }
 }

@@ -74,14 +74,14 @@ class SchemaServiceImpl(private val objectMapper: ObjectMapper) : SchemaService 
     ): Boolean {
         if (keyPath.isEmpty()) return false
         val indexedObject = schema.properties[keyPath[0]] ?: return false
-        return objectContainsIndexedProperty(indexedObject, keyPath, 1) {
-            it.property.type == propertyType
+        return objectContainsProperty(indexedObject, keyPath, 1) {
+            it.property.type == propertyType && it.required
         }
     }
 
     override fun pathsFitSchema(schema: SchemaProperties.Schema, paths: Map<String, SchemaProperties.PropertyType>): Boolean {
         return schema.properties.all {
-            isContained(it.key, it.value, paths)
+            !it.value.required || isContained(it.key, it.value, paths)
         }
     }
 
@@ -120,10 +120,10 @@ class SchemaServiceImpl(private val objectMapper: ObjectMapper) : SchemaService 
         val keyPath = path.split("_")
         if (keyPath.isEmpty()) return false
         val indexedObject = schema.properties[keyPath[0]] ?: return false
-        return objectContainsIndexedProperty(indexedObject, keyPath, 1) { it.indexed }
+        return objectContainsProperty(indexedObject, keyPath, 1) { it.indexed }
     }
 
-    private fun objectContainsIndexedProperty(
+    private fun objectContainsProperty(
         schema: SchemaProperties.PropertyTypeIndexable,
         keyPath: List<String>,
         position: Int,
@@ -141,12 +141,12 @@ class SchemaServiceImpl(private val objectMapper: ObjectMapper) : SchemaService 
             logger.warn("Property at path '${keyPath.subList(0, position + 1).joinToString("_")}' is null")
             return false
         }
-        return objectContainsIndexedProperty(property, keyPath, position + 1, condition)
+        return objectContainsProperty(property, keyPath, position + 1, condition)
     }
 
     private fun jsonNodeFitsSchema(jsonNode: JsonNode, schema: SchemaProperties.Schema): Boolean {
         return jsonNode.isObject && schema.properties.all {
-            jsonNode.has(it.key) && jsonNodeFitsSchema(jsonNode.get(it.key), it.value)
+            if (jsonNode.has(it.key)) jsonNodeFitsSchema(jsonNode.get(it.key), it.value) else !it.value.required
         }
     }
 

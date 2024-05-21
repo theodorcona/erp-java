@@ -1,10 +1,9 @@
 package com.example.erp.organization
 
-import com.example.erp.entity.CollectionDescriptor
-import com.example.erp.eventmeta.EventMetadata
+import com.example.erp.entity.NoDTOCollectionDescriptor
 import java.util.*
 
-object ORGANIZATION_COLLECTION : CollectionDescriptor<Organization>(
+object ORGANIZATION_COLLECTION : NoDTOCollectionDescriptor<Organization>(
     Organization::class.java,
     "organization"
 )

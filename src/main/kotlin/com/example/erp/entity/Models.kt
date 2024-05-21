@@ -3,9 +3,11 @@ package com.example.erp.entity
 import org.joda.time.DateTime
 import java.util.*
 
+// https://erp.com/users/abcd8976-abcd738373738338-383473-sadf23
 data class Entity(
     val id: UUID,
-    val collection: String,
+    // abcd8976-abcd738373738338-383473-sadf23
+    val collection: String, // users,invoices,trees
     val createdAt: DateTime,
     val updatedAt: DateTime,
     val data: String
@@ -35,12 +37,35 @@ class DateProperty(
     override val propertyName: IndexedPropertyName<DateTime>
 ) : IndexedProperty<DateTime>
 
-abstract class CollectionDescriptor<T>(
-    val type: Class<T>,
+/**
+ * Use this when your entity type doesn't need a different serialization format
+ */
+abstract class NoDTOCollectionDescriptor<T>(
+    type: Class<T>,
+    collectionName: String,
+    indexedStringProperties: List<IndexedStringPropertyName> = emptyList(),
+    indexedDateProperties: List<IndexedDatePropertyName> = emptyList(),
+    indexedLongProperties: List<IndexedLongPropertyName> = emptyList(),
+) : CollectionDescriptor<T,T>(
+    type,
+    type,
+    collectionName,
+    indexedStringProperties,
+    indexedDateProperties,
+    indexedLongProperties,
+    { d -> d },
+    { d -> d }
+)
+
+abstract class CollectionDescriptor<Domain, DTO>(
+    val type: Class<Domain>,
+    val dtoType: Class<DTO>,
     val collectionName: String,
     val indexedStringProperties: List<IndexedStringPropertyName> = emptyList(),
     val indexedDateProperties: List<IndexedDatePropertyName> = emptyList(),
     val indexedLongProperties: List<IndexedLongPropertyName> = emptyList(),
+    val fromDTO : (dto: DTO) -> Domain,
+    val toDTO: (domain: Domain) -> DTO,
 )
 interface IndexedPropertyName<out T> {
     val path: String

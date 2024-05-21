@@ -2,40 +2,47 @@ package com.example.erp.logic
 
 import com.example.erp.common.*
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 interface DataTransformer {
     fun transform(input: String, properties: Map<String, Input>): String
 }
 
-@JsonDeserialize(using = InputDeserializer::class)
+data class InputDTO(
+    val type: InputType,
+    val staticValue: Any?,
+    val staticResultType: SchemaProperties.PropertyType?,
+    val otherPath: String?,
+    val otherResultType: SchemaProperties.PropertyType?,
+    val applyType: ApplyType?,
+    val applyOperator: Operators.OperatorDTO?,
+    val applyInputs: List<InputDTO>?
+)
+
 interface Input {
     val type: InputType
+    val outputType: SchemaProperties.PropertyType
     fun apply(data: JsonNode): Any
-    fun outputType(): SchemaProperties.PropertyType
 }
 
-class StaticInput(val value: Any, val propertyType: SchemaProperties.PropertyType): Input {
+class StaticInput(
+    val value: Any,
+    override val outputType: SchemaProperties.PropertyType
+): Input {
     override val type = InputType.STATIC
     override fun apply(data: JsonNode): Any {
         return value
-    }
-    override fun outputType(): SchemaProperties.PropertyType {
-        return propertyType
     }
 }
 
 class OtherDataInput(
     val path: String,
-    val propertyType: SchemaProperties.PropertyType
+    override val outputType: SchemaProperties.PropertyType
 ): Input {
     override val type = InputType.OTHER
     override fun apply(data: JsonNode): Any {
-        return getValueAtPath(data, path.split("_")).toValue(propertyType)
-    }
-
-    override fun outputType(): SchemaProperties.PropertyType {
-        return propertyType
+        return getValueAtPath(data, path.split("_")).toValue(outputType)
     }
 }
 
@@ -45,9 +52,7 @@ class ApplyInput(val apply: Apply): Input {
         return apply.calculate(data)
     }
 
-    override fun outputType(): SchemaProperties.PropertyType {
-        return apply.operator.outputType()
-    }
+    override val outputType = apply.operator.outputType()
 }
 
 enum class InputType {

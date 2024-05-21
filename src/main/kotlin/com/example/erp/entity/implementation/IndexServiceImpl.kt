@@ -1,8 +1,6 @@
 package com.example.erp.entity.implementation
 
-import com.example.erp.entity.Entity
-import com.example.erp.entity.EntityStore
-import com.example.erp.entity.IndexService
+import com.example.erp.entity.*
 import com.example.erp.entitymeta.EntityMetadataService
 import com.example.erp.entitymeta.SchemaService
 import org.springframework.stereotype.Service
@@ -19,7 +17,9 @@ class IndexServiceImpl(
         // Index is not created yet
         val entity = entityStore.findEntityById(id, includeNotIndexed = true) ?: return
         val metadata = entityMetadataService.getEntityMetadataForCollection(entity.collection).obj
-        val indexedProperties = schemaService.getIndexedProperties(metadata.schema, entity.data, entity.collection)
+        val indexedProperties = schemaService.getIndexedProperties(metadata.schema, entity.data, entity.collection).plus(
+            DateProperty(entity.createdAt, entity.collection, IndexedDatePropertyName("createdAt"))
+        )
         indexedProperties.forEach {
             indexRegistry.insert(it, id)
         }

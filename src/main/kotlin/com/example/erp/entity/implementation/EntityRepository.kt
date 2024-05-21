@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.repository.MongoRepository
 
 interface EntityRepository : MongoRepository<GenericEntity, String>
@@ -71,24 +72,24 @@ interface IndexEntry {
 }
 
 data class StringIndexEntry(
-    val value: String,
-    val entityCollection: String,
-    val propertyName: String,
-    override val entityId: String,
+    @Indexed val value: String,
+    @Indexed val entityCollection: String,
+    @Indexed val propertyName: String,
+    @Indexed override val entityId: String,
 ) : IndexEntry
 
 data class DateIndexEntry(
-    val value: DateTime,
-    val entityCollection: String,
-    val propertyName: String,
-    override val entityId: String
+    @Indexed val value: DateTime,
+    @Indexed val entityCollection: String,
+    @Indexed val propertyName: String,
+    @Indexed override val entityId: String
 ) : IndexEntry
 
 data class LongIndexEntry(
-    val value: Long,
-    val entityCollection: String,
-    val propertyName: String,
-    override val entityId: String
+    @Indexed val value: Long,
+    @Indexed val entityCollection: String,
+    @Indexed val propertyName: String,
+    @Indexed override val entityId: String
 ) : IndexEntry
 
 

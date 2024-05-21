@@ -1,25 +1,22 @@
 package com.example.erp.rest
 
-import com.example.erp.common.SchemaProperties
-import com.example.erp.entity.Entity
+import com.example.erp.common.SchemaDTO
+import com.example.erp.common.fromSchemaDTO
+import com.example.erp.entity.EntityServiceFactory
 import com.example.erp.entity.EntityStore
 import com.example.erp.entitymeta.EntityMetadata
 import com.example.erp.entitymeta.EntityMetadataService
-import org.joda.time.DateTime
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @RestController
 class EntityController(
     private val entityStore: EntityStore,
-    private val entityMetadataService: EntityMetadataService
+    private val entityMetadataService: EntityMetadataService,
+    private val entityServiceFactory: EntityServiceFactory,
+    private val objectMapper: ObjectMapper
 ) {
 
     @PostMapping("/entities")
@@ -27,7 +24,7 @@ class EntityController(
         @RequestBody entityMetadataCreationDTO: EntityMetadataCreationDTO
     ) {
         entityMetadataService.insertEntityMetadata(
-            EntityMetadata(entityMetadataCreationDTO.entityName, entityMetadataCreationDTO.schema)
+            EntityMetadata(entityMetadataCreationDTO.entityName, fromSchemaDTO(entityMetadataCreationDTO.schema))
         )
     }
 
@@ -36,11 +33,12 @@ class EntityController(
         @PathVariable entityName: String,
         @RequestParam("cursor") cursor: String?,
         @RequestParam("pageSize") pageSize: Int
-    ): PageDTO<Entity> {
+    ): PageDTO<EntityDTO> {
         if (!entityMetadataService.entityCollectionExists(entityName)) {
             throw NotFoundException()
         }
-        return entityStore.findAllEntitiesInCollectionPaged(entityName, RangeQuery(cursor, pageSize))
+        return entityServiceFactory.getServiceForGenericEntity(entityName).getAll(RangeQuery(cursor, pageSize))
+            .map { EntityDTO(it.id, it.obj) }
     }
 
     @PostMapping("/entities/{entityName}")
@@ -51,13 +49,8 @@ class EntityController(
         if (!entityMetadataService.entityCollectionExists(entityName)) {
             throw NotFoundException()
         }
-        return entityStore.insertEntity(entity.data, entityName).let {
-            EntityDTO(
-                id = it.id,
-                createdAt = it.createdAt,
-                updatedAt = it.updatedAt,
-                data = it.data
-            )
+        return entityServiceFactory.getServiceForGenericEntity(entityName).insert(entity.data).let {
+            EntityDTO(it.id, it.obj)
         }
     }
 
@@ -70,47 +63,34 @@ class EntityController(
         if (!entityMetadataService.entityCollectionExists(entityName)) {
             throw NotFoundException()
         }
-        entityStore.updateEntityAndReturnPrevious(entityId, entity.data, entityName)
-        return entityStore.findEntityById(entityId)!!.let {
-            EntityDTO(
-                id = it.id,
-                createdAt = it.createdAt,
-                updatedAt = it.updatedAt,
-                data = it.data
-            )
+        entityServiceFactory.getServiceForGenericEntity(entityName).update(entityId, entity.data)
+        return entityServiceFactory.getServiceForGenericEntity(entityName).getById(entityId).let {
+            EntityDTO(it.id, it.obj)
         }
     }
 
     @GetMapping("/entities/{entityName}/{entityId}")
-    fun getEntitiesForCollection(
+    fun getEntityById(
         @PathVariable entityName: String,
         @PathVariable entityId: UUID
     ): EntityDTO {
-        return entityStore.findEntityById(entityId)
-            ?.takeIf { it.collection == entityName }
-            ?.let {
-                EntityDTO(
-                    id = it.id,
-                    createdAt = it.createdAt,
-                    updatedAt = it.updatedAt,
-                    data = it.data
-                )
-            } ?: throw NotFoundException()
+        return entityServiceFactory.getServiceForGenericEntity(entityName).getById(entityId).let {
+            EntityDTO(it.id, it.obj)
+        }
     }
 }
 
 data class EntityCreateDTO(
-    val data: String
+    val data: Map<String, Any>
 )
+
 
 data class EntityDTO(
     val id: UUID,
-    val createdAt: DateTime,
-    val updatedAt: DateTime,
-    val data: String
+    val data: Map<String, Any>
 )
 
 data class EntityMetadataCreationDTO(
     val entityName: String,
-    val schema: SchemaProperties.Schema
+    val schema: SchemaDTO
 )

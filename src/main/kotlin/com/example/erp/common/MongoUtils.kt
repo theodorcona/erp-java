@@ -1,6 +1,5 @@
 package com.example.erp.common
 
-import com.example.erp.logic.Input
 import com.example.erp.rest.PageDTO
 import com.example.erp.rest.RangeQuery
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -24,22 +23,6 @@ class DateTimeWriteConverter : Converter<DateTime, Long> {
     }
 }
 
-class InputReadConverter : Converter<String, Input> {
-    private val objectMapper = ObjectMapper()
-    override fun convert(source: String): Input {
-        val jsonNode = objectMapper.readTree(source)
-        return deserializeInput(jsonNode)
-    }
-}
-
-class SchemaPropertiesReadConverter : Converter<String, SchemaProperties.Schema> {
-    private val objectMapper = ObjectMapper()
-    override fun convert(source: String): SchemaProperties.Schema {
-        val jsonNode = objectMapper.readTree(source)
-        return deserializeSchema(jsonNode)
-    }
-}
-
 @Configuration
 class MyMongoConfiguration {
 
@@ -48,9 +31,7 @@ class MyMongoConfiguration {
         return MongoCustomConversions(
             listOf(
                 DateTimeWriteConverter(),
-                DateTimeReadConverter(),
-                SchemaPropertiesReadConverter(),
-                InputReadConverter()
+                DateTimeReadConverter()
             )
         )
     }

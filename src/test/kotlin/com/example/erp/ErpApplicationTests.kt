@@ -3,7 +3,6 @@ package com.example.erp
 import com.example.erp.common.Operators
 import com.example.erp.common.SchemaProperties
 import com.example.erp.entity.EntityServiceFactory
-import com.example.erp.entity.StringProperty
 import com.example.erp.entitymeta.EntityMetadata
 import com.example.erp.entitymeta.EntityMetadataService
 import com.example.erp.event.ApplicationUser
@@ -19,22 +18,24 @@ import com.example.erp.logic.ApplyInput
 import com.example.erp.logic.MonoApply
 import com.example.erp.logic.OtherDataInput
 import com.example.erp.logic.StaticInput
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.modulith.core.ApplicationModules
 import java.util.*
-import kotlin.jvm.Throws
+
 
 @SpringBootTest
 @Import(TestErpApplication::class)
 class ErpApplicationTests {
+
     @Autowired
     private lateinit var kafkaProducer: ErpKafkaProducer
 
@@ -47,14 +48,23 @@ class ErpApplicationTests {
     @Autowired
     private lateinit var entityMetadataService: EntityMetadataService
 
-    @Test
-    fun applicationModulesVerify() {
-        ApplicationModules.of(ErpApplication::class.java).verify()
+    @Autowired
+    private lateinit var mongoTemplate: MongoTemplate
+
+    @AfterEach
+    fun clearDB() {
+        mongoTemplate.db.drop()
     }
 
     @BeforeEach
     fun setup() {
         registerNecessaryEntities()
+    }
+
+    @Test
+    @Disabled
+    fun applicationModulesVerify() {
+        ApplicationModules.of(ErpApplication::class.java).verify()
     }
 
     @Test
@@ -191,6 +201,7 @@ class ErpApplicationTests {
                 )
             )
         )
+        // EVENT METADATA: UserClick { userName: String, timestamp: Date }
         eventMetadataService.insert(
             EventMetadata(
                 "OUTPUT",

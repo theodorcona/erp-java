@@ -1,9 +1,9 @@
 package com.example.erp.user
 
-import com.example.erp.entity.CollectionDescriptor
+import com.example.erp.entity.NoDTOCollectionDescriptor
 import java.util.*
 
-object USER_COLLECTION : CollectionDescriptor<User>(
+object USER_COLLECTION : NoDTOCollectionDescriptor<User>(
     User::class.java,
     "user"
 )

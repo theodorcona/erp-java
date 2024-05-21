@@ -1,19 +1,23 @@
 package com.example.erp.product
 
-import com.example.erp.entity.CollectionDescriptor
-import com.fasterxml.jackson.databind.JsonNode
+import com.example.erp.entity.IndexedStringPropertyName
+import com.example.erp.entity.NoDTOCollectionDescriptor
 
 
-object PRODUCT_COLLECTION : CollectionDescriptor<Product>(
+object PRODUCT_COLLECTION : NoDTOCollectionDescriptor<Product>(
     Product::class.java,
-    "product"
-)
+    "product",
+    indexedStringProperties = listOf(
+        IndexedStringPropertyName("sku")
+    )
+) {
+    object PROPERTIES {
+        val sku = indexedStringProperties[0]
+    }
+}
 
 data class Product(
-    val name: String,
-    val description: String,
-    val additionalData: JsonNode,
-    val identifiers: List<ProductIdentifier>
+    val sku: String,
 )
 
 data class ProductIdentifier(

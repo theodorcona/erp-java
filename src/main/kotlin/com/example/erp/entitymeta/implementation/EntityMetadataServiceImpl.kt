@@ -1,14 +1,16 @@
 package com.example.erp.entitymeta.implementation
 
 import com.example.erp.common.AnyWithId
+import com.example.erp.common.fromEntityMetadataDTO
+import com.example.erp.common.toDTO
 import com.example.erp.entity.*
 import com.example.erp.entity.implementation.IndexRegistry
 import com.example.erp.entitymeta.EntityMetadata
+import com.example.erp.entitymeta.EntityMetadataDTO
 import com.example.erp.entitymeta.EntityMetadataService
 import com.example.erp.rest.PageDTO
 import com.example.erp.rest.RangeQuery
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.data.domain.Page
 import org.springframework.stereotype.Service
 
 @Service
@@ -17,12 +19,15 @@ class EntityMetadataServiceImpl(
     private val entityStore: EntityStore,
     private val indexRegistry: IndexRegistry
 ) : EntityMetadataService {
-    private object ENTITY_METADATA_COLLECTION : CollectionDescriptor<EntityMetadata>(
+    private object ENTITY_METADATA_COLLECTION : CollectionDescriptor<EntityMetadata, EntityMetadataDTO>(
         type = EntityMetadata::class.java,
+        dtoType = EntityMetadataDTO::class.java,
         collectionName = "entityMetadata",
         indexedStringProperties = listOf(
             IndexedStringPropertyName("collection")
-        )
+        ),
+        toDTO = { domain -> domain.toDTO() },
+        fromDTO = { dto -> fromEntityMetadataDTO(dto) }
     ) {
         object PROPERTIES {
             val collection = indexedStringProperties.get(0)
@@ -37,7 +42,7 @@ class EntityMetadataServiceImpl(
         return entityStore.findAllEntitiesInCollectionPaged(
             ENTITY_METADATA_COLLECTION.collectionName,
             rangeQuery
-        ).map(this::entityToDTO)
+        ).map(this::entityDataToDomain)
     }
 
     override fun getEntityMetadataForCollection(collection: String): AnyWithId<EntityMetadata> {
@@ -49,7 +54,7 @@ class EntityMetadataServiceImpl(
         if (entityCollectionExists(entityMetadata.collection)) {
             throw IllegalStateException("Entity metadata for collection '${entityMetadata.collection}' already exists")
         }
-        val entityData = dtoToData(entityMetadata)
+        val entityData = domainToData(entityMetadata)
         val response = entityStore.insertEntity(entityData, ENTITY_METADATA_COLLECTION.collectionName)
         if (findCollectionByName(entityMetadata.collection).items.size > 1) {
             entityStore.deleteEntityById(response.id)
@@ -62,21 +67,21 @@ class EntityMetadataServiceImpl(
                 ENTITY_METADATA_COLLECTION.PROPERTIES.collection
             ), response.id
         )
-        return response.let(this::entityToDTO)
+        return response.let(this::entityDataToDomain)
     }
 
-    private fun entityToDTO(entity: Entity): AnyWithId<EntityMetadata> {
-        val entityMetadata = objectMapper.readValue(entity.data, EntityMetadata::class.java)
-        return AnyWithId(entity.id, entityMetadata)
+    private fun entityDataToDomain(entity: Entity): AnyWithId<EntityMetadata> {
+        val entityMetadataDTO = objectMapper.readValue(entity.data, EntityMetadataDTO::class.java)
+        return AnyWithId(entity.id, fromEntityMetadataDTO(entityMetadataDTO))
     }
 
-    private fun dtoToData(dto: EntityMetadata): String {
-        return objectMapper.writeValueAsString(dto)
+    private fun domainToData(dto: EntityMetadata): String {
+        return objectMapper.writeValueAsString(dto.toDTO())
     }
 
     private fun findCollectionByName(collection: String): PageDTO<AnyWithId<EntityMetadata>> {
         val collectionProperty = StringCollectionProperty(collection, ENTITY_METADATA_COLLECTION.PROPERTIES.collection)
         val property = collectionProperty.toProperty(ENTITY_METADATA_COLLECTION.collectionName)
-        return entityStore.findEntitiesByPropertyPaged(property, RangeQuery(null, 10)).map(this::entityToDTO)
+        return entityStore.findEntitiesByPropertyPaged(property, RangeQuery(null, 10)).map(this::entityDataToDomain)
     }
 }

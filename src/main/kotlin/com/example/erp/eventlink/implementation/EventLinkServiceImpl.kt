@@ -1,6 +1,5 @@
 package com.example.erp.eventlink.implementation
 
-import com.example.erp.common.AnyWithId
 import com.example.erp.common.SchemaProperties
 import com.example.erp.entity.EntityServiceFactory
 import com.example.erp.entity.StringCollectionProperty
@@ -36,7 +35,7 @@ class EventLinkServiceImpl(
         checkNotNull(inputEventMetadata)
         checkNotNull(outputEventMetadata)
 
-        val pathsToOutputType = eventLink.properties.mapValues { it.value.outputType() }
+        val pathsToOutputType = eventLink.properties.mapValues { it.value.outputType }
         val inputPathToType = mapInputPathToInputType(eventLink.properties.values).toMap()
 
         schemaService.pathsFitSchema(outputEventMetadata.obj.schema, pathsToOutputType)
@@ -54,7 +53,7 @@ class EventLinkServiceImpl(
     private fun mapInputPathToInputType(inputs: Collection<Input>): List<Pair<String, SchemaProperties.PropertyType>> {
         return inputs.flatMap {
             when (it) {
-                is OtherDataInput -> listOf(it.path to it.outputType())
+                is OtherDataInput -> listOf(it.path to it.outputType)
                 is ApplyInput -> mapInputPathToInputType(inputs)
                 else -> listOf()
             }

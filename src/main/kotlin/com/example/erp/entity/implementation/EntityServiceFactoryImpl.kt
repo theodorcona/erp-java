@@ -6,9 +6,8 @@ import com.example.erp.entitymeta.EntityMetadataService
 import com.example.erp.entitymeta.SchemaService
 import com.example.erp.rest.PageDTO
 import com.example.erp.rest.RangeQuery
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import java.util.*
 
@@ -20,7 +19,7 @@ class EntityServiceFactoryImpl(
     private val schemaService: SchemaService,
     private val indexService: IndexService
 ) : EntityServiceFactory {
-    override fun <T : Any> getServiceForEntity(collectionDescriptor: CollectionDescriptor<T>): EntityService<T> {
+    override fun <T : Any, DTO : Any> getServiceForEntity(collectionDescriptor: CollectionDescriptor<T, DTO>): EntityService<T> {
         return object : EntityService<T>, AbstractEntityService<AnyWithId<T>, T>(
             collectionDescriptor.collectionName,
             entityStore,
@@ -28,13 +27,14 @@ class EntityServiceFactoryImpl(
             schemaService,
             indexService,
         ) {
-            override fun entityToDTO(entity: Entity): AnyWithId<T> {
-                val entityMetadata = objectMapper.readValue(entity.data, collectionDescriptor.type)
-                return AnyWithId(entity.id, entityMetadata)
+            override fun entityToDomain(entity: Entity): AnyWithId<T> {
+                val entityMetadata = objectMapper.readValue(entity.data, collectionDescriptor.dtoType)
+                return AnyWithId(entity.id, collectionDescriptor.fromDTO(entityMetadata))
             }
 
-            override fun dtoToData(dto: T): String {
-                return objectMapper.writeValueAsString(dto)
+            override fun domainToData(domain: T): String {
+                collectionDescriptor.toDTO(domain)
+                return objectMapper.writeValueAsString(collectionDescriptor.toDTO(domain))
             }
 
             override fun getById(id: UUID): AnyWithId<T> {
@@ -45,7 +45,10 @@ class EntityServiceFactoryImpl(
                 return getEntitiesAllPaged(rangeQuery)
             }
 
-            override fun getByProperty(property: IndexedCollectionProperty<Any>, rangeQuery: RangeQuery): PageDTO<AnyWithId<T>> {
+            override fun getByProperty(
+                property: IndexedCollectionProperty<Any>,
+                rangeQuery: RangeQuery
+            ): PageDTO<AnyWithId<T>> {
                 return findByPropertyPaged(property, rangeQuery)
             }
 
@@ -58,6 +61,55 @@ class EntityServiceFactoryImpl(
             }
 
             override fun delete(id: UUID): AnyWithId<T> {
+                return deleteEntity(id)!!
+            }
+        }
+    }
+
+    override fun getServiceForGenericEntity(collectionName: String): EntityService<Map<String, Any>> {
+        return object : EntityService<Map<String, Any>>,
+            AbstractEntityService<AnyWithId<Map<String, Any>>, Map<String, Any>>(
+                collectionName,
+                entityStore,
+                entityMetadataService,
+                schemaService,
+                indexService,
+            ) {
+            override fun entityToDomain(entity: Entity): AnyWithId<Map<String, Any>> {
+                return AnyWithId(entity.id, objectMapper.readValue(
+                    entity.data,
+                    object : TypeReference<Map<String, Any>>() {}
+                ))
+            }
+
+            override fun domainToData(domain: Map<String, Any>): String {
+                return objectMapper.writeValueAsString(domain)
+            }
+
+            override fun getById(id: UUID): AnyWithId<Map<String, Any>> {
+                return findById(id)!!
+            }
+
+            override fun getAll(rangeQuery: RangeQuery): PageDTO<AnyWithId<Map<String, Any>>> {
+                return getEntitiesAllPaged(rangeQuery)
+            }
+
+            override fun getByProperty(
+                property: IndexedCollectionProperty<Any>,
+                rangeQuery: RangeQuery
+            ): PageDTO<AnyWithId<Map<String, Any>>> {
+                return findByPropertyPaged(property, rangeQuery)
+            }
+
+            override fun insert(entity: Map<String, Any>): AnyWithId<Map<String, Any>> {
+                return insertEntity(entity)
+            }
+
+            override fun update(id: UUID, entity: Map<String, Any>): AnyWithId<Map<String, Any>> {
+                return updateEntity(id, entity)
+            }
+
+            override fun delete(id: UUID): AnyWithId<Map<String, Any>> {
                 return deleteEntity(id)!!
             }
         }
